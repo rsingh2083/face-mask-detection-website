@@ -1,0 +1,103 @@
+<html>
+<body>
+    <form method='post' enctype="multipart/form-data">
+        {% csrf_token %}    
+        <input type="file" name="img" id="img">
+    <button type="submit">开始检测</button>
+    </form>
+    <p id="info"></p>
+    <canvas id="canvasOne" class="myCanvas" width="1800" height="1000"></canvas>
+    <label>
+        Ground Truth
+    </label>
+    <label>
+       Test Result 
+    </label>
+    <script >
+        var canvas = document.getElementById('canvasOne');
+        var ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        var  bboxes = {{ bboxes | safe }}
+        console.log(bboxes);
+
+        //读取本地文件
+        var inputOne = document.getElementById('img');
+        inputOne.onchange = function () {
+            var canvas = document.getElementById('canvasOne');
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            bboxes = undefined;
+            //1.获取选中的文件列表
+            var fileList = inputOne.files;
+            var file = fileList[0];
+            //读取文件内容
+            var reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function (e) {
+                var info = document.getElementById("info");
+                info.innerHTML = "左图：真实标记结果，右图：网络标记结果";
+                //将结果显示到canvas
+                showCanvas_gt(reader.result);
+                showCanvas_pred(reader.result);
+            }
+        }
+
+        if (bboxes !=undefined) {
+               var info = document.getElementById("info");
+                info.innerHTML = "左图：真实标记结果，右图：网络标记结果";
+            showCanvas_pred('data:image/png;base64,'+bboxes[2]);
+            showCanvas_gt('data:image/png;base64,'+bboxes[2]);
+        }
+        //指定图片内容显示
+        function showCanvas_gt(dataUrl) {
+         //   console.info(dataUrl);
+            var canvas = document.getElementById('canvasOne');
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            //加载图片
+            var img = new Image();
+            img.onload = function () {
+                ctx.drawImage(img, 0, 0, img.width, img.height);
+                context = ctx;
+                context.beginPath();
+                if (bboxes != undefined){
+                    for (var i = bboxes[0].length-1; i >= 0; --i){
+                        context.rect(bboxes[0][i][0], bboxes[0][i][1], bboxes[0][i][2]-bboxes[0][i][0], bboxes[0][i][3]-bboxes[0][i][1]);
+                    }
+                }
+                context.lineWidth = 3;
+                context.strokeStyle = 'red';
+                context.stroke();
+            }
+            img.src = dataUrl;
+            // document.body.appendChild(img);
+        }
+
+        //指定图片内容显示
+        function showCanvas_pred(dataUrl) {
+        //    console.info(dataUrl);
+            var canvas = document.getElementById('canvasOne');
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            //加载图片
+            var img = new Image();
+            img.onload = function () {
+                ctx.drawImage(img, img.width+2, 0, img.width, img.height);
+                context = ctx;
+                context.beginPath();
+                if ( bboxes != undefined) {
+                    for (var i = bboxes[1].length-1; i >= 0; --i){
+                        context.rect(parseInt(bboxes[0][i][0])+img.width, parseInt(bboxes[1][i][1]), bboxes[1][i][2]-bboxes[1][i][0], bboxes[1][i][3]-bboxes[1][i][1]);
+                    }
+                }
+                context.lineWidth = 3;
+                context.strokeStyle = 'red';
+                context.stroke();
+            }
+            img.src = dataUrl;
+            // document.body.appendChild(img);
+        }
+    </script>
+</body>
+</html>
